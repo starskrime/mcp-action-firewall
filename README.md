@@ -17,16 +17,16 @@ A transparent **MCP proxy** that intercepts dangerous tool calls and requires **
 ## How It Works
 
 ```
-┌──────────┐    stdin/stdout    ┌───────────────────┐    stdin/stdout    ┌──────────────────┐
-│ AI Agent │ ◄─────────────────► │ MCP Action        │ ◄─────────────────► │ Target MCP Server│
-│ (Claude) │                    │ Firewall (proxy)   │                    │ (e.g. Stripe)    │
-└──────────┘                    └───────────────────┘                    └──────────────────┘
+┌──────────┐    stdin/stdout    ┌───────────────────┐    stdin/stdout   ┌──────────────────┐
+│ AI Agent │ ◄────────────────► │ MCP Action        │ ◄───────────────► │Target MCP Server │
+│ (Claude) │                    │ Firewall (proxy)  │                   │(e.g. Stripe)     │
+└──────────┘                    └───────────────────┘                   └──────────────────┘
                                        │
                                   Policy Engine
-                                  ┌─────────────┐
-                                  │ Allow? Block?│
-                                  │ Generate OTP │
-                                  └─────────────┘
+                                  ┌────────-─-────┐
+                                  │ Allow? Block? │
+                                  │ Generate OTP  │
+                                  └──────-─-──────┘
 ```
 
 1. **Safe calls** (e.g. `get_balance`) → forwarded immediately
