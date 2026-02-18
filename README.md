@@ -11,6 +11,7 @@
 [![Windsurf](https://img.shields.io/badge/Windsurf-00C4B3?style=for-the-badge&logo=codeium&logoColor=white)](https://codeium.com/windsurf)
 [![OpenAI](https://img.shields.io/badge/OpenAI_Agents-412991?style=for-the-badge&logo=openai&logoColor=white)](https://openai.com)
 [![Gemini](https://img.shields.io/badge/Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://gemini.google.com)
+[![OpenClaw](https://img.shields.io/badge/OpenClaw-FF6600?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPjxwYXRoIGQ9Ik0xMiAyYTEwIDEwIDAgMSAwIDAgMjAgMTAgMTAgMCAwIDAgMC0yMHptMCAzYTIgMiAwIDEgMSAwIDQgMiAyIDAgMCAxIDAtNHptLTQgNWEyIDIgMCAxIDEgMCA0IDIgMiAwIDAgMSAwLTR6bTggMGEyIDIgMCAxIDEgMCA0IDIgMiAwIDAgMSAwLTR6bS00IDRhMiAyIDAgMSAxIDAgNCAyIDIgMCAwIDEgMC00eiIvPjwvc3ZnPg==&logoColor=white)](https://github.com/openclaw)
 
 A transparent **MCP proxy** that intercepts dangerous tool calls and requires **OTP-based human approval** before execution. Acts as a circuit breaker between your AI agent and any MCP server.
 
