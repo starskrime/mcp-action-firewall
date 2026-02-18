@@ -1,18 +1,42 @@
 {
   "global": {
-    "allow_prefixes": ["get_", "list_", "read_", "fetch_"],
-    "block_keywords": ["delete", "update", "create", "pay", "send", "transfer", "drop", "remove", "refund"],
+    "allow_prefixes": [
+      "get_",
+      "list_",
+      "read_",
+      "fetch_"
+    ],
+    "block_keywords": [
+      "delete",
+      "update",
+      "create",
+      "pay",
+      "send",
+      "transfer",
+      "drop",
+      "remove",
+      "refund"
+    ],
     "default_action": "block"
   },
   "servers": {
     "stripe": {
       "allow_prefixes": [],
-      "block_keywords": ["refund", "charge"],
+      "block_keywords": [
+        "refund",
+        "charge"
+      ],
       "default_action": "block"
     },
     "database": {
-      "allow_prefixes": ["select_"],
-      "block_keywords": ["drop", "truncate", "alter"],
+      "allow_prefixes": [
+        "select_"
+      ],
+      "block_keywords": [
+        "drop",
+        "truncate",
+        "alter"
+      ],
       "default_action": "block"
     }
   }

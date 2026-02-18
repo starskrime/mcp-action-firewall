@@ -23,8 +23,10 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 import logging
 import os
+import shutil
 import sys
 from importlib.resources import files as pkg_files
 
@@ -63,7 +65,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--target",
-        required=True,
+        default=None,
         help=(
             "The shell command to launch the real MCP server. "
             "Example: 'uvx mcp-server-stripe --api-key sk_test_...'"
@@ -89,6 +91,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--verbose", "-v",
         action="store_true",
         help="Enable debug-level logging.",
+    )
+    parser.add_argument(
+        "--generate-config",
+        action="store_true",
+        help=(
+            "Generate a starter firewall_config.json in the current "
+            "directory and exit. Customize it for your needs."
+        ),
     )
     return parser
 
@@ -118,10 +128,41 @@ def _resolve_config_path(user_path: str | None) -> str:
     return str(bundled)
 
 
+def _handle_generate_config() -> None:
+    """Write a starter firewall_config.json to the current directory."""
+    output_path = os.path.join(os.getcwd(), "firewall_config.json")
+
+    if os.path.exists(output_path):
+        print(f"❌ {output_path} already exists. Remove it first.")
+        sys.exit(1)
+
+    # Read the bundled default and pretty-print it
+    bundled = pkg_files("mcp_action_firewall").joinpath("default_config.json")
+    with open(str(bundled), "r", encoding="utf-8") as f:
+        config = json.load(f)
+
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(config, f, indent=2)
+        f.write("\n")
+
+    print(f"✅ Generated {output_path}")
+    print("   Edit this file to customize your firewall rules.")
+    print("   The firewall will auto-detect it in the current directory.")
+
+
 def main() -> None:
     """Entry point for the MCP Action Firewall."""
     parser = build_parser()
     args = parser.parse_args()
+
+    # Handle --generate-config before anything else
+    if args.generate_config:
+        _handle_generate_config()
+        return
+
+    # --target is required for normal operation
+    if not args.target:
+        parser.error("--target is required (or use --generate-config)")
 
     _configure_logging(args.verbose)
 
