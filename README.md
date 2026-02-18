@@ -18,21 +18,47 @@ A transparent **MCP proxy** that intercepts dangerous tool calls and requires **
 ## How It Works
 
 ```
-┌──────────┐    stdin/stdout    ┌───────────────────┐    stdin/stdout   ┌──────────────────┐
-│ AI Agent │ ◄────────────────► │ MCP Action        │ ◄───────────────► │Target MCP Server │
-│ (Claude) │                    │ Firewall (proxy)  │                   │(e.g. Stripe)     │
-└──────────┘                    └───────────────────┘                   └──────────────────┘
-                                       │
-                                  Policy Engine
-                                  ┌────────-─-────┐
+┌──────────┐    stdin/stdout    ┌──────────────────┐    stdin/stdout    ┌──────────────────┐
+│ AI Agent │ ◄────────────────► │   MCP Action     │ ◄────────────────► │ Target MCP Server│
+│ (Claude) │                    │   Firewall       │                    │ (e.g. Stripe)    │
+└──────────┘                    └──────────────────┘                    └──────────────────┘
+                                        │
+                                   Policy Engine
+                                  ┌───────────────┐
                                   │ Allow? Block? │
                                   │ Generate OTP  │
-                                  └──────-─-──────┘
+                                  └───────────────┘
 ```
 
-1. **Safe calls** (e.g. `get_balance`) → forwarded immediately
-2. **Dangerous calls** (e.g. `delete_user`) → blocked, OTP generated
-3. Agent asks user for the code → user replies → agent calls `firewall_confirm` → original action is executed
+MCP servers don't run like web servers — there's no background process on a port. Instead, your AI agent (Claude, Cursor, etc.) **spawns the MCP server as a subprocess** and talks to it over stdin/stdout. When the chat ends, the process dies.
+
+The firewall inserts itself into that chain:
+
+```
+Without firewall:
+  Claude ──spawns──► mcp-server-stripe
+
+With firewall:
+  Claude ──spawns──► mcp-action-firewall ──spawns──► mcp-server-stripe
+```
+
+So you just **replace the server command** in your MCP client config with the firewall, and tell the firewall what the original command was:
+
+**Before** (direct):
+```json
+{ "command": "uvx", "args": ["mcp-server-stripe", "--api-key", "sk_test_..."] }
+```
+
+**After** (wrapped with firewall):
+```json
+{ "command": "uv", "args": ["run", "mcp-action-firewall", "--target", "mcp-server-stripe --api-key sk_test_..."] }
+```
+
+Then the firewall applies your security policy:
+
+1. ✅ **Safe calls** (e.g. `get_balance`) → forwarded immediately
+2. 🛑 **Dangerous calls** (e.g. `delete_user`) → blocked, OTP generated
+3. 🔑 Agent asks user for the code → user replies → agent calls `firewall_confirm` → original action executes
 
 ## Installation
 
