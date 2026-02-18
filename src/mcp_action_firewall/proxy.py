@@ -76,6 +76,7 @@ class FirewallProxy:
         self._policy = policy_engine
         self._store = pending_store
 
+
         # Subprocess handles — set during run()
         self._process: Optional[asyncio.subprocess.Process] = None
 
@@ -207,7 +208,7 @@ class FirewallProxy:
         # BLOCK — generate OTP and return soft-rejection
         logger.warning("🛑 BLOCK: %s — generating OTP", tool_name)
         otp = self._store.create(tool_name, arguments)
-        response = self._build_soft_rejection(request_id, tool_name, otp)
+        response = self._build_soft_rejection(request_id, tool_name, arguments, otp)
         await self._send_to_agent(json.dumps(response))
 
     async def _handle_firewall_confirm(
@@ -363,25 +364,44 @@ class FirewallProxy:
 
     @staticmethod
     def _build_soft_rejection(
-        request_id: Any, tool_name: str, otp: str
+        request_id: Any,
+        tool_name: str,
+        arguments: dict[str, Any],
+        otp: str,
     ) -> dict[str, Any]:
         """Build the structured PAUSED response that instructs the AI agent
-        to ask the user for the OTP approval code."""
+        to ask the user for the OTP approval code.
+
+        Arguments are included in the prompt so the human can verify
+        exactly what will be executed before typing the code.
+        """
+        # Format arguments as a readable summary for the user
+        args_summary = (
+            json.dumps(arguments, indent=2) if arguments else "(no arguments)"
+        )
+
         rejection_payload = {
             "status": "PAUSED_FOR_APPROVAL",
             "message": (
                 f"⚠️ The action '{tool_name}' is HIGH RISK and has been "
                 f"locked by the Action Firewall."
             ),
+            "action": {
+                "tool": tool_name,
+                "arguments": arguments,
+            },
             "instruction": (
                 f"To unlock this action, you MUST ask the user for "
                 f"authorization.\n\n"
-                f"1. Tell the user: 'I need to perform a **{tool_name}** "
-                f"action. Please authorize by replying with code: "
-                f"**{otp}**'.\n"
-                f"2. STOP and wait for their reply.\n"
-                f"3. When they reply with '{otp}', call the "
-                f"'{FIREWALL_CONFIRM_TOOL_NAME}' tool with that code."
+                f"1. Show the user the following and ask for approval:\n"
+                f"   Tool: **{tool_name}**\n"
+                f"   Arguments:\n{args_summary}\n\n"
+                f"2. Tell the user: 'Please reply with approval code: "
+                f"**{otp}**' to allow this action, or say no to cancel.\n"
+                f"3. STOP and wait for their reply.\n"
+                f"4. When they reply with '{otp}', call the "
+                f"'{FIREWALL_CONFIRM_TOOL_NAME}' tool with that code.\n"
+                f"5. If they say no or give a different code, do NOT retry."
             ),
         }
         return {

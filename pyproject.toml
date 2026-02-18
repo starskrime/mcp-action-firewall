@@ -1,6 +1,6 @@
 [project]
 name = "mcp-action-firewall"
-version = "0.2.0"
+version = "0.3.0"
 description = "A transparent MCP proxy that intercepts dangerous tool calls and requires OTP-based user approval."
 authors = [{name = "Bakir Talibov"}]
 readme = "README.md"

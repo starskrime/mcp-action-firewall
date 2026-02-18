@@ -174,7 +174,7 @@ def main() -> None:
 
     config_path = _resolve_config_path(args.config)
     policy_engine = PolicyEngine(config_path, server_name=args.name)
-    pending_store = PendingActionStore()
+    pending_store = PendingActionStore(max_attempts=policy_engine.otp_attempt_count)
 
     proxy = FirewallProxy(
         target_command=args.target,

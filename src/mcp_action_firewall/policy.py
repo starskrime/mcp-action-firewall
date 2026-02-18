@@ -65,22 +65,29 @@ class PolicyEngine:
                 bad structure.
         """
         raw_config = self._load_config(config_path)
-        self._allow_prefixes, self._block_keywords, self._default_action = (
+        self._allow_prefixes, self._block_keywords, self._default_action, self._otp_attempt_count = (
             self._merge_rules(raw_config, server_name)
         )
 
         logger.info(
             "PolicyEngine initialized (server=%s) – "
-            "allow_prefixes=%s, block_keywords=%s, default=%s",
+            "allow_prefixes=%s, block_keywords=%s, default=%s, otp_attempt_count=%d",
             server_name or "global-only",
             self._allow_prefixes,
             self._block_keywords,
             self._default_action,
+            self._otp_attempt_count,
         )
 
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
+
+    @property
+    def otp_attempt_count(self) -> int:
+        """Maximum number of failed OTP attempts before lockout."""
+        return self._otp_attempt_count
+
 
     def evaluate(self, tool_name: str) -> PolicyDecision:
         """Decide whether a tool call is allowed or blocked.
@@ -163,6 +170,7 @@ class PolicyEngine:
         allow_prefixes: list[str] = list(global_cfg.get("allow_prefixes", []))
         block_keywords: list[str] = list(global_cfg.get("block_keywords", []))
         default_action: str = global_cfg.get("default_action", "block")
+        otp_attempt_count: int = int(global_cfg.get("otp_attempt_count", 1))
 
         if server_name:
             server_cfg = config.get("servers", {}).get(server_name)
@@ -194,4 +202,10 @@ class PolicyEngine:
                 f"Must be one of: {valid_actions}"
             )
 
-        return allow_prefixes, block_keywords, default_action
+        # Validate otp_attempt_count
+        if otp_attempt_count < 1:
+            raise ValueError(
+                "otp_attempt_count must be at least 1"
+            )
+
+        return allow_prefixes, block_keywords, default_action, otp_attempt_count

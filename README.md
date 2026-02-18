@@ -141,9 +141,15 @@ When the agent tries to call a blocked tool, the firewall returns a structured r
 {
   "status": "PAUSED_FOR_APPROVAL",
   "message": "⚠️ The action 'delete_user' is HIGH RISK and has been locked by the Action Firewall.",
-  "instruction": "To unlock this action, you MUST ask the user for authorization.\n\n1. Tell the user: 'I need to perform a **delete_user** action. Please authorize by replying with code: **9942**'.\n2. STOP and wait for their reply.\n3. When they reply with '9942', call the 'firewall_confirm' tool with that code."
+  "action": {
+    "tool": "delete_user",
+    "arguments": { "id": 42 }
+  },
+  "instruction": "To unlock this action, you MUST ask the user for authorization.\n\n1. Show the user the following and ask for approval:\n   Tool: **delete_user**\n   Arguments:\n{\"id\": 42}\n\n2. Tell the user: 'Please reply with approval code: **9942**' to allow this action, or say no to cancel.\n3. STOP and wait for their reply.\n4. When they reply with '9942', call the 'firewall_confirm' tool with that code.\n5. If they say no or give a different code, do NOT retry."
 }
 ```
+
+> **Argument visibility guarantee:** The arguments shown to the user are frozen at interception time — they are taken from the original blocked call, not from what the agent passes to `firewall_confirm`. The agent cannot change the arguments after the OTP is issued.
 
 The `firewall_confirm` tool is automatically injected into the server's tool list:
 
@@ -173,7 +179,8 @@ The firewall ships with sensible defaults. Override with `--config`:
   "global": {
     "allow_prefixes": ["get_", "list_", "read_", "fetch_"],
     "block_keywords": ["delete", "update", "create", "pay", "send", "transfer", "drop", "remove", "refund"],
-    "default_action": "block"
+    "default_action": "block",
+    "otp_attempt_count": 1
   },
   "servers": {
     "stripe": {
@@ -194,6 +201,8 @@ The firewall ships with sensible defaults. Override with `--config`:
 1. Tool name starts with an allow prefix → **ALLOW**
 2. Tool name contains a block keyword → **BLOCK** (OTP required)
 3. No match → fallback to `default_action`
+
+**`otp_attempt_count`** — maximum number of failed OTP attempts before the pending action is permanently locked out. Defaults to `1` (any wrong code cancels the request). Increase for more forgiving UX, keep at `1` for maximum security.
 
 **Per-server rules** extend (not replace) the global rules. Use `--name stripe` to activate server-specific overrides.
 
@@ -253,6 +262,16 @@ The demo simulates an AI agent and walks you through the full OTP flow:
 1. ✅ **Safe call** (`get_balance`) → passes through instantly
 2. 🛑 **Dangerous call** (`delete_user`) → blocked, OTP generated
 3. 🔑 **You enter the code** → action executes after approval
+
+## Known Limitations
+
+### Argument Inspection
+
+The firewall matches on **tool names only**, not argument values. This means a tool like `get_data({"sql": "DROP TABLE users"})` would pass if `get_` is in your allow list, because the policy engine only sees `get_data`.
+
+**Workaround:** Use explicit tool names in your allow/block lists and set `"default_action": "block"` so unrecognized tools require approval.
+
+> 🚧 **Roadmap:** Argument-level inspection (scanning argument values against `block_keywords`) is planned for a future release.
 
 ## Development
 

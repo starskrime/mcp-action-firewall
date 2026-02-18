@@ -15,14 +15,15 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 
-@dataclass(frozen=True)
+@dataclass
 class PendingAction:
-    """Immutable record of a blocked tool call awaiting user confirmation."""
+    """Mutable record of a blocked tool call awaiting user confirmation."""
 
     tool_name: str
     arguments: dict[str, Any]
     otp: str
     created_at: float = field(default_factory=time.time)
+    attempt_count: int = 0  # number of failed validation attempts
 
 
 class PendingActionStore:
@@ -33,15 +34,22 @@ class PendingActionStore:
         2. OTP is shown to the user via the agent chat.
         3. ``action = store.validate(otp)``  — removes it from the store.
         4. If the OTP is wrong, ``validate`` returns ``None``.
+           After ``max_attempts`` failures the entry is permanently removed.
     """
 
     _OTP_LENGTH: int = 4
     _DEFAULT_TTL_SECONDS: int = 300  # 5 minutes
 
-    def __init__(self, *, ttl_seconds: int = _DEFAULT_TTL_SECONDS) -> None:
+    def __init__(
+        self,
+        *,
+        ttl_seconds: int = _DEFAULT_TTL_SECONDS,
+        max_attempts: int = 1,
+    ) -> None:
         self._store: dict[str, PendingAction] = {}
         self._lock = threading.Lock()
         self._ttl_seconds = ttl_seconds
+        self._max_attempts = max_attempts
 
     # ------------------------------------------------------------------
     # Public API
@@ -76,6 +84,10 @@ class PendingActionStore:
         The action is **removed** from the store on successful validation
         so that each OTP can only be used once.
 
+        If the OTP is wrong, the attempt counter is incremented.
+        Once ``max_attempts`` is reached, the entry is permanently removed
+        (locked out).
+
         Args:
             otp: The code provided by the user.
 
@@ -87,7 +99,22 @@ class PendingActionStore:
 
         with self._lock:
             self._cleanup_expired_locked()
-            return self._store.pop(otp, None)
+
+            action = self._store.get(otp)
+            if action is not None:
+                # Valid OTP — consume and return
+                del self._store[otp]
+                return action
+
+            # Wrong OTP — increment attempt count on any matching entry
+            # and lock out if limit reached
+            for stored_otp, stored_action in list(self._store.items()):
+                stored_action.attempt_count += 1
+                if stored_action.attempt_count >= self._max_attempts:
+                    del self._store[stored_otp]
+                    return None  # locked out
+
+            return None
 
     def cleanup_expired(self) -> int:
         """Remove entries older than the configured TTL.

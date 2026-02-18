@@ -17,7 +17,8 @@
       "remove",
       "refund"
     ],
-    "default_action": "block"
+    "default_action": "block",
+    "otp_attempt_count": 1
   },
   "servers": {
     "stripe": {
