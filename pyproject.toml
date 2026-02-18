@@ -24,8 +24,8 @@ dependencies = [
 mcp-action-firewall = "mcp_action_firewall.server:main"
 
 [project.urls]
-Homepage = "https://github.com/bakirtalibov/mcp-action-firewall"
-Repository = "https://github.com/bakirtalibov/mcp-action-firewall"
+Homepage = "https://github.com/starskrime/mcp-action-firewall"
+Repository = "https://github.com/starskrime/mcp-action-firewall"
 
 [build-system]
 requires = ["hatchling"]
