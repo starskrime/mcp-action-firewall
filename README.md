@@ -211,6 +211,22 @@ src/mcp_action_firewall/
 ├── state.py             # OTP store with TTL
 └── default_config.json  # Bundled default rules
 ```
+## Try It — Interactive Demo
+
+See the firewall in action without any setup:
+
+```bash
+git clone https://github.com/starskrime/mcp-action-firewall.git
+cd mcp-action-firewall
+uv sync
+uv run python demo.py
+```
+
+The demo simulates an AI agent and walks you through the full OTP flow:
+
+1. ✅ **Safe call** (`get_balance`) → passes through instantly
+2. 🛑 **Dangerous call** (`delete_user`) → blocked, OTP generated
+3. 🔑 **You enter the code** → action executes after approval
 
 ## Development
 
